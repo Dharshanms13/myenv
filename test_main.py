@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
-from main import app, get_db
+from main import app
 import database_models
 
 client = TestClient(app)
@@ -27,9 +27,6 @@ def override_get_db():
     yield mock_db()
 
 
-app.dependency_overrides[get_db] = override_get_db
-
-
 # --- GET / ---
 
 def test_greet():
@@ -45,8 +42,6 @@ def test_get_all_products_returns_list():
     db = MagicMock()
     db.query.return_value.all.return_value = [mock_product]
 
-    app.dependency_overrides[get_db] = lambda: (yield db)
-
     response = client.get("/products")
     assert response.status_code == 200
 
@@ -54,8 +49,6 @@ def test_get_all_products_returns_list():
 def test_get_all_products_empty():
     db = MagicMock()
     db.query.return_value.all.return_value = []
-
-    app.dependency_overrides[get_db] = lambda: (yield db)
 
     response = client.get("/products")
     assert response.status_code == 200
@@ -69,8 +62,6 @@ def test_get_product_by_id_found():
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = mock_product
 
-    app.dependency_overrides[get_db] = lambda: (yield db)
-
     response = client.get("/products/1")
     assert response.status_code == 200
 
@@ -78,8 +69,6 @@ def test_get_product_by_id_found():
 def test_get_product_by_id_not_found():
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = None
-
-    app.dependency_overrides[get_db] = lambda: (yield db)
 
     response = client.get("/products/999")
     assert response.status_code == 200
@@ -90,7 +79,6 @@ def test_get_product_by_id_not_found():
 
 def test_add_product_success():
     db = MagicMock()
-    app.dependency_overrides[get_db] = lambda: (yield db)
 
     payload = {"id": 1, "name": "Phone", "description": "Budget phone", "price": 99.0, "quantity": 10}
     response = client.post("/products", json=payload)
@@ -104,7 +92,6 @@ def test_add_product_success():
 
 def test_add_product_with_zero_price():
     db = MagicMock()
-    app.dependency_overrides[get_db] = lambda: (yield db)
 
     payload = {"id": 2, "name": "Freebie", "description": "Free item", "price": 0.0, "quantity": 5}
     response = client.post("/products", json=payload)
@@ -115,7 +102,6 @@ def test_add_product_with_zero_price():
 
 def test_add_product_missing_field():
     db = MagicMock()
-    app.dependency_overrides[get_db] = lambda: (yield db)
 
     # Missing 'quantity'
     payload = {"id": 3, "name": "Pen", "description": "Blue pen", "price": 1.99}
@@ -131,8 +117,6 @@ def test_update_product_success():
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = mock_product
 
-    app.dependency_overrides[get_db] = lambda: (yield db)
-
     payload = {"id": 1, "name": "Smartphone", "description": "Updated", "price": 149.0, "quantity": 5}
     response = client.put("/products?id=1", json=payload)
 
@@ -146,8 +130,6 @@ def test_update_product_success():
 def test_update_product_not_found():
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = None
-
-    app.dependency_overrides[get_db] = lambda: (yield db)
 
     payload = {"id": 999, "name": "Ghost", "description": "N/A", "price": 0.0, "quantity": 0}
     response = client.put("/products?id=999", json=payload)
@@ -164,8 +146,6 @@ def test_delete_product_success():
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = mock_product
 
-    app.dependency_overrides[get_db] = lambda: (yield db)
-
     response = client.delete("/products?id=1")
 
     assert response.status_code == 200
@@ -177,8 +157,6 @@ def test_delete_product_success():
 def test_delete_product_not_found():
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = None
-
-    app.dependency_overrides[get_db] = lambda: (yield db)
 
     response = client.delete("/products?id=999")
 
